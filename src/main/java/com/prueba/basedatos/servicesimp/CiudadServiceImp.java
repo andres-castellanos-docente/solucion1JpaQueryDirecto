@@ -4,6 +4,7 @@ import java.util.*;
 
 import com.prueba.basedatos.dtos.CiudadDto;
 import com.prueba.basedatos.entities.PaisEntity;
+import com.prueba.basedatos.exception.CustomUnexpectedRollbackException;
 import com.prueba.basedatos.repositories.PaisRepository;
 import com.prueba.basedatos.requests.CiudadRequests;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,7 @@ import com.prueba.basedatos.responses.CiudadResponse;
 import com.prueba.basedatos.repositories.CiudadRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.TransactionRequiredException;
+import javax.persistence.PersistenceException;
 
 @Service
 public class CiudadServiceImp implements CiudadService {
@@ -68,6 +69,7 @@ public class CiudadServiceImp implements CiudadService {
             return new ResponseEntity<>(new CiudadResponse(-1, listMess, HttpStatus.INTERNAL_SERVER_ERROR.value()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Transactional
     @Override
     public ResponseEntity<CiudadResponse> inactivarCiudadporPais(CiudadRequests ciudadRequests) {
@@ -76,11 +78,15 @@ public class CiudadServiceImp implements CiudadService {
             ciudadRepository.updateCiudades(ciudadRequests.getActivo(), ciudadRequests.getIdpais());
             listMess.add("Se actualiza estado ok");
             return new ResponseEntity<>(new CiudadResponse(1, listMess, HttpStatus.OK.value()), HttpStatus.OK);
-        } catch (Exception e) {
+        }
+        catch (PersistenceException rollback) {
+            throw new CustomUnexpectedRollbackException("Ocurrió un error al actualizar estado, verifique datos");
+           // return new ResponseEntity<>(new CiudadResponse(-1, listMess, null), HttpStatus.OK);
+        }
+        catch (Exception e) {
             listMess.add("Ocurrió un error al actualizar estado");
             return new ResponseEntity<>(new CiudadResponse(-1, listMess, HttpStatus.INTERNAL_SERVER_ERROR.value()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
 
